@@ -1,0 +1,450 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>1901 Irish Census - Kennelly Family Map</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.css" />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet.markercluster/1.5.3/leaflet.markercluster.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet.markercluster/1.5.3/MarkerCluster.css" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet.markercluster/1.5.3/MarkerCluster.Default.css" />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            height: 100vh;
+            overflow: hidden;
+        }
+        #container {
+            display: flex;
+            height: 100vh;
+        }
+        #sidebar {
+            width: 320px;
+            background: #2c3e50;
+            color: white;
+            padding: 20px;
+            overflow-y: auto;
+            box-shadow: 2px 0 10px rgba(0,0,0,0.3);
+        }
+        #map {
+            flex: 1;
+            height: 100vh;
+        }
+        h1 {
+            font-size: 22px;
+            margin-bottom: 10px;
+            color: #3498db;
+        }
+        h2 {
+            font-size: 16px;
+            margin-top: 20px;
+            margin-bottom: 10px;
+            color: #3498db;
+            border-bottom: 2px solid #3498db;
+            padding-bottom: 5px;
+        }
+        .file-upload {
+            margin: 20px 0;
+            padding: 20px;
+            background: #34495e;
+            border-radius: 8px;
+            text-align: center;
+        }
+        .file-upload input[type="file"] {
+            display: none;
+        }
+        .file-upload label {
+            display: inline-block;
+            padding: 12px 24px;
+            background: #3498db;
+            color: white;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+        .file-upload label:hover {
+            background: #2980b9;
+        }
+        .controls {
+            margin: 15px 0;
+        }
+        .controls label {
+            display: block;
+            margin-bottom: 5px;
+            font-size: 14px;
+        }
+        .controls select, .controls input {
+            width: 100%;
+            padding: 8px;
+            border-radius: 4px;
+            border: none;
+            margin-bottom: 10px;
+        }
+        .toggle-btn {
+            width: 100%;
+            padding: 10px;
+            margin: 5px 0;
+            background: #3498db;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: background 0.3s;
+        }
+        .toggle-btn:hover {
+            background: #2980b9;
+        }
+        .toggle-btn.active {
+            background: #27ae60;
+        }
+        .stats {
+            background: #34495e;
+            padding: 15px;
+            border-radius: 8px;
+            margin-top: 15px;
+        }
+        .stat-item {
+            margin: 8px 0;
+            font-size: 14px;
+        }
+        .stat-item strong {
+            color: #3498db;
+        }
+        .leaflet-popup-content {
+            margin: 15px;
+            line-height: 1.6;
+        }
+        .popup-title {
+            font-size: 18px;
+            font-weight: bold;
+            color: #2c3e50;
+            margin-bottom: 10px;
+            border-bottom: 2px solid #3498db;
+            padding-bottom: 5px;
+        }
+        .popup-row {
+            margin: 5px 0;
+            font-size: 13px;
+        }
+        .popup-label {
+            font-weight: bold;
+            color: #7f8c8d;
+        }
+        #loading {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+            z-index: 1000;
+            display: none;
+        }
+        .top-list {
+            font-size: 13px;
+            line-height: 1.8;
+        }
+    </style>
+</head>
+<body>
+    <div id="loading">Loading data...</div>
+    <div id="container">
+        <div id="sidebar">
+            <h1>1901 Irish Census</h1>
+            <p style="font-size: 14px; margin-bottom: 20px;">Kennelly Family - County Tipperary</p>
+            
+            <div class="file-upload">
+                <input type="file" id="csvFile" accept=".csv" />
+                <label for="csvFile">📁 Select CSV File</label>
+                <p style="font-size: 12px; margin-top: 10px; opacity: 0.8;" id="file-status">No file selected</p>
+            </div>
+
+            <div id="controls-section" style="display: none;">
+                <h2>View Options</h2>
+                <button class="toggle-btn active" id="toggleMarkers">Show Individual Markers</button>
+                <button class="toggle-btn" id="toggleHeatmap">Show Heatmap</button>
+                <button class="toggle-btn" id="toggleClusters">Enable Clustering</button>
+
+                <h2>Filters</h2>
+                <div class="controls">
+                    <label>Electoral District:</label>
+                    <select id="districtFilter">
+                        <option value="">All Districts</option>
+                    </select>
+
+                    <label>Sex:</label>
+                    <select id="sexFilter">
+                        <option value="">All</option>
+                        <option value="Male">Male</option>
+                        <option value="Female">Female</option>
+                    </select>
+
+                    <label>Age Range:</label>
+                    <input type="number" id="minAge" placeholder="Min age" min="0" max="120" />
+                    <input type="number" id="maxAge" placeholder="Max age" min="0" max="120" />
+
+                    <button class="toggle-btn" id="applyFilters">Apply Filters</button>
+                    <button class="toggle-btn" id="resetFilters">Reset Filters</button>
+                </div>
+
+                <h2>Statistics</h2>
+                <div class="stats" id="stats"></div>
+            </div>
+        </div>
+        <div id="map"></div>
+    </div>
+
+    <script>
+        let map, markersLayer, clustersLayer, heatmapLayer;
+        let allData = [];
+        let filteredData = [];
+        let showingMarkers = true;
+        let showingClusters = false;
+        let showingHeatmap = false;
+
+        // Initialize map centered on Tipperary
+        map = L.map('map').setView([52.4733, -8.1614], 10);
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '© OpenStreetMap contributors'
+        }).addTo(map);
+
+        markersLayer = L.layerGroup().addTo(map);
+        clustersLayer = L.markerClusterGroup();
+        heatmapLayer = L.layerGroup();
+
+        // File upload handler
+        document.getElementById('csvFile').addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (file) {
+                document.getElementById('file-status').textContent = 'Loading: ' + file.name;
+                document.getElementById('loading').style.display = 'block';
+                
+                Papa.parse(file, {
+                    header: true,
+                    dynamicTyping: true,
+                    skipEmptyLines: true,
+                    complete: function(results) {
+                        allData = results.data.filter(row => row.LAT && row.LONG);
+                        filteredData = [...allData];
+                        document.getElementById('file-status').textContent = `Loaded: ${allData.length} records`;
+                        document.getElementById('controls-section').style.display = 'block';
+                        document.getElementById('loading').style.display = 'none';
+                        populateFilters();
+                        updateMap();
+                        updateStats();
+                    },
+                    error: function(error) {
+                        alert('Error parsing CSV: ' + error.message);
+                        document.getElementById('loading').style.display = 'none';
+                    }
+                });
+            }
+        });
+
+        function populateFilters() {
+            const districts = [...new Set(allData.map(d => d['Electoral Division']))].sort();
+            const districtSelect = document.getElementById('districtFilter');
+            districts.forEach(district => {
+                if (district) {
+                    const option = document.createElement('option');
+                    option.value = district;
+                    option.textContent = district;
+                    districtSelect.appendChild(option);
+                }
+            });
+        }
+
+        function createPopupContent(person) {
+            return `
+                <div class="popup-title">${person['First Name']} ${person.Surname}</div>
+                <div class="popup-row"><span class="popup-label">Townland:</span> ${person['Townland/Street'] || 'N/A'}</div>
+                <div class="popup-row"><span class="popup-label">Electoral District:</span> ${person['Electoral Division'] || 'N/A'}</div>
+                <div class="popup-row"><span class="popup-label">Age:</span> ${person.age || 'N/A'}</div>
+                <div class="popup-row"><span class="popup-label">Sex:</span> ${person.sex || 'N/A'}</div>
+                <div class="popup-row"><span class="popup-label">Relationship:</span> ${person.relation_to_head || 'N/A'}</div>
+                <div class="popup-row"><span class="popup-label">Birthplace:</span> ${person.birthplace || 'N/A'}</div>
+            `;
+        }
+
+        function updateMap() {
+            markersLayer.clearLayers();
+            clustersLayer.clearLayers();
+            heatmapLayer.clearLayers();
+
+            filteredData.forEach(person => {
+                const marker = L.marker([person.LAT, person.LONG])
+                    .bindPopup(createPopupContent(person));
+                
+                if (showingClusters) {
+                    clustersLayer.addLayer(marker);
+                } else {
+                    markersLayer.addLayer(marker);
+                }
+            });
+
+            if (showingHeatmap) {
+                createHeatmap();
+            }
+
+            updateLayerVisibility();
+        }
+
+        function createHeatmap() {
+            const districtCounts = {};
+            const districtCoords = {};
+
+            filteredData.forEach(person => {
+                const district = person['Electoral Division'];
+                if (district) {
+                    districtCounts[district] = (districtCounts[district] || 0) + 1;
+                    if (!districtCoords[district]) {
+                        districtCoords[district] = { lat: person.LAT, lng: person.LONG };
+                    }
+                }
+            });
+
+            const maxCount = Math.max(...Object.values(districtCounts));
+
+            Object.keys(districtCounts).forEach(district => {
+                const count = districtCounts[district];
+                const coords = districtCoords[district];
+                const radius = 1000 + (count / maxCount) * 4000;
+                const opacity = 0.3 + (count / maxCount) * 0.4;
+
+                L.circle([coords.lat, coords.lng], {
+                    radius: radius,
+                    color: '#e74c3c',
+                    fillColor: '#e74c3c',
+                    fillOpacity: opacity,
+                    weight: 2
+                }).bindPopup(`<strong>${district}</strong><br>${count} Kennellys`).addTo(heatmapLayer);
+            });
+        }
+
+        function updateLayerVisibility() {
+            if (showingMarkers && !showingClusters) {
+                map.addLayer(markersLayer);
+                map.removeLayer(clustersLayer);
+            } else if (showingMarkers && showingClusters) {
+                map.removeLayer(markersLayer);
+                map.addLayer(clustersLayer);
+            } else {
+                map.removeLayer(markersLayer);
+                map.removeLayer(clustersLayer);
+            }
+
+            if (showingHeatmap) {
+                map.addLayer(heatmapLayer);
+            } else {
+                map.removeLayer(heatmapLayer);
+            }
+        }
+
+        function updateStats() {
+            const total = filteredData.length;
+            const males = filteredData.filter(p => p.sex === 'Male').length;
+            const females = filteredData.filter(p => p.sex === 'Female').length;
+            
+            const ages = filteredData.map(p => p.age).filter(a => a != null);
+            const avgAge = ages.length > 0 ? (ages.reduce((a, b) => a + b, 0) / ages.length).toFixed(1) : 'N/A';
+
+            const districtCounts = {};
+            filteredData.forEach(p => {
+                const district = p['Electoral Division'];
+                if (district) districtCounts[district] = (districtCounts[district] || 0) + 1;
+            });
+            const topDistricts = Object.entries(districtCounts)
+                .sort((a, b) => b[1] - a[1])
+                .slice(0, 5);
+
+            const townlandCounts = {};
+            filteredData.forEach(p => {
+                const townland = p['Townland/Street'];
+                if (townland) townlandCounts[townland] = (townlandCounts[townland] || 0) + 1;
+            });
+            const topTownlands = Object.entries(townlandCounts)
+                .sort((a, b) => b[1] - a[1])
+                .slice(0, 5);
+
+            let statsHTML = `
+                <div class="stat-item"><strong>Total:</strong> ${total}</div>
+                <div class="stat-item"><strong>Males:</strong> ${males}</div>
+                <div class="stat-item"><strong>Females:</strong> ${females}</div>
+                <div class="stat-item"><strong>Average Age:</strong> ${avgAge}</div>
+                <h2 style="font-size: 14px; margin-top: 15px;">Top Electoral Districts</h2>
+                <div class="top-list">
+            `;
+            topDistricts.forEach(([district, count]) => {
+                statsHTML += `${district}: ${count}<br>`;
+            });
+            statsHTML += `</div><h2 style="font-size: 14px; margin-top: 15px;">Top Townlands</h2><div class="top-list">`;
+            topTownlands.forEach(([townland, count]) => {
+                statsHTML += `${townland}: ${count}<br>`;
+            });
+            statsHTML += `</div>`;
+
+            document.getElementById('stats').innerHTML = statsHTML;
+        }
+
+        // Toggle buttons
+        document.getElementById('toggleMarkers').addEventListener('click', function() {
+            showingMarkers = !showingMarkers;
+            this.classList.toggle('active');
+            this.textContent = showingMarkers ? 'Hide Individual Markers' : 'Show Individual Markers';
+            updateLayerVisibility();
+        });
+
+        document.getElementById('toggleHeatmap').addEventListener('click', function() {
+            showingHeatmap = !showingHeatmap;
+            this.classList.toggle('active');
+            this.textContent = showingHeatmap ? 'Hide Heatmap' : 'Show Heatmap';
+            updateMap();
+        });
+
+        document.getElementById('toggleClusters').addEventListener('click', function() {
+            showingClusters = !showingClusters;
+            this.classList.toggle('active');
+            this.textContent = showingClusters ? 'Disable Clustering' : 'Enable Clustering';
+            updateMap();
+        });
+
+        // Filter buttons
+        document.getElementById('applyFilters').addEventListener('click', function() {
+            const district = document.getElementById('districtFilter').value;
+            const sex = document.getElementById('sexFilter').value;
+            const minAge = parseInt(document.getElementById('minAge').value) || 0;
+            const maxAge = parseInt(document.getElementById('maxAge').value) || 999;
+
+            filteredData = allData.filter(person => {
+                if (district && person['Electoral Division'] !== district) return false;
+                if (sex && person.sex !== sex) return false;
+                if (person.age != null && (person.age < minAge || person.age > maxAge)) return false;
+                return true;
+            });
+
+            updateMap();
+            updateStats();
+        });
+
+        document.getElementById('resetFilters').addEventListener('click', function() {
+            document.getElementById('districtFilter').value = '';
+            document.getElementById('sexFilter').value = '';
+            document.getElementById('minAge').value = '';
+            document.getElementById('maxAge').value = '';
+            filteredData = [...allData];
+            updateMap();
+            updateStats();
+        });
+    </script>
+</body>
+</html>
