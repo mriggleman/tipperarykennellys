@@ -169,9 +169,9 @@
 
             <div id="controls-section">
                 <h2>View Options</h2>
-                <button class="toggle-btn active" id="toggleMarkers">Show Individual Markers</button>
+                <button class="toggle-btn active" id="toggleMarkers">Hide Individual Markers</button>
                 <button class="toggle-btn" id="toggleHeatmap">Show Heatmap</button>
-                <button class="toggle-btn" id="toggleClusters">Enable Clustering</button>
+                <button class="toggle-btn active" id="toggleClusters">Disable Clustering</button>
 
                 <h2>Filters</h2>
                 <div class="controls">
@@ -207,7 +207,7 @@
         let allData = [];
         let filteredData = [];
         let showingMarkers = true;
-        let showingClusters = false;
+        let showingClusters = true;
         let showingHeatmap = false;
 
         // Initialize map centered on Tipperary
