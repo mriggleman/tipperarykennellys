@@ -164,12 +164,10 @@
             <p style="font-size: 14px; margin-bottom: 20px;">Kennelly Family - County Tipperary</p>
             
             <div class="file-upload">
-                <input type="file" id="csvFile" accept=".csv" />
-                <label for="csvFile">📁 Select CSV File</label>
-                <p style="font-size: 12px; margin-top: 10px; opacity: 0.8;" id="file-status">No file selected</p>
+                <p style="font-size: 12px; opacity: 0.8;" id="file-status">Loading data...</p>
             </div>
 
-            <div id="controls-section" style="display: none;">
+            <div id="controls-section">
                 <h2>View Options</h2>
                 <button class="toggle-btn active" id="toggleMarkers">Show Individual Markers</button>
                 <button class="toggle-btn" id="toggleHeatmap">Show Heatmap</button>
@@ -222,34 +220,33 @@
         clustersLayer = L.markerClusterGroup();
         heatmapLayer = L.layerGroup();
 
-        // File upload handler
-        document.getElementById('csvFile').addEventListener('change', function(e) {
-            const file = e.target.files[0];
-            if (file) {
-                document.getElementById('file-status').textContent = 'Loading: ' + file.name;
-                document.getElementById('loading').style.display = 'block';
-                
-                Papa.parse(file, {
-                    header: true,
-                    dynamicTyping: true,
-                    skipEmptyLines: true,
-                    complete: function(results) {
-                        allData = results.data.filter(row => row.LAT && row.LONG);
-                        filteredData = [...allData];
-                        document.getElementById('file-status').textContent = `Loaded: ${allData.length} records`;
-                        document.getElementById('controls-section').style.display = 'block';
-                        document.getElementById('loading').style.display = 'none';
-                        populateFilters();
-                        updateMap();
-                        updateStats();
-                    },
-                    error: function(error) {
-                        alert('Error parsing CSV: ' + error.message);
-                        document.getElementById('loading').style.display = 'none';
-                    }
-                });
-            }
-        });
+        // Auto-load CSV file from repository
+        function loadData() {
+            document.getElementById('loading').style.display = 'block';
+            
+            Papa.parse('combined_census_data_only_kennelly.csv', {
+                download: true,
+                header: true,
+                dynamicTyping: true,
+                skipEmptyLines: true,
+                complete: function(results) {
+                    allData = results.data.filter(row => row.LAT && row.LONG);
+                    filteredData = [...allData];
+                    document.getElementById('file-status').textContent = `Loaded: ${allData.length} records`;
+                    document.getElementById('loading').style.display = 'none';
+                    populateFilters();
+                    updateMap();
+                    updateStats();
+                },
+                error: function(error) {
+                    document.getElementById('file-status').textContent = 'Error loading data: ' + error.message;
+                    document.getElementById('loading').style.display = 'none';
+                }
+            });
+        }
+
+        // Load data on page load
+        loadData();
 
         function populateFilters() {
             const districts = [...new Set(allData.map(d => d['Electoral Division']))].sort();
