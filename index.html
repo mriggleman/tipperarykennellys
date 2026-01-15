@@ -1,4 +1,4 @@
-https://mriggleman.github.io/tipperarykennellys/<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -207,8 +207,8 @@ https://mriggleman.github.io/tipperarykennellys/<!DOCTYPE html>
 
             <div id="controls-section">
                 <h2>View Options</h2>
-                 <!-- <button class="toggle-btn active" id="toggleMarkers">Hide Individual Markers</button> -->
-              <!-- commenting out for now <button class="toggle-btn" id="toggleHeatmap">Show Heatmap</button>  -->
+                <button class="toggle-btn active" id="toggleMarkers">Hide Individual Markers</button>
+                <button class="toggle-btn" id="toggleHeatmap">Show Heatmap</button>
                 <button class="toggle-btn active" id="toggleClusters">Disable Clustering</button>
 
                 <h2>Filters</h2>
@@ -254,7 +254,7 @@ https://mriggleman.github.io/tipperarykennellys/<!DOCTYPE html>
         let showingHeatmap = false;
 
         // Initialize map centered on Tipperary
-        map = L.map('map').setView([52.6733, -8.1614], 8);
+        map = L.map('map').setView([52.6733, -8.1614], 9);
         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
             attribution: '© OpenStreetMap contributors'
         }).addTo(map);
