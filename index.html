@@ -24,6 +24,7 @@
         #container {
             display: flex;
             height: 100vh;
+            position: relative;
         }
         #sidebar {
             width: 320px;
@@ -32,10 +33,46 @@
             padding: 20px;
             overflow-y: auto;
             box-shadow: 2px 0 10px rgba(0,0,0,0.3);
+            transition: transform 0.3s ease;
+            z-index: 1000;
         }
         #map {
             flex: 1;
             height: 100vh;
+        }
+        #menu-toggle {
+            display: none;
+            position: fixed;
+            top: 10px;
+            left: 10px;
+            z-index: 1001;
+            background: #2c3e50;
+            color: white;
+            border: none;
+            padding: 12px 16px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 18px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.3);
+        }
+        
+        @media (max-width: 768px) {
+            #sidebar {
+                position: fixed;
+                left: 0;
+                top: 0;
+                height: 100vh;
+                transform: translateX(-100%);
+            }
+            #sidebar.open {
+                transform: translateX(0);
+            }
+            #menu-toggle {
+                display: block;
+            }
+            #map {
+                width: 100%;
+            }
         }
         h1 {
             font-size: 22px;
@@ -158,6 +195,7 @@
 </head>
 <body>
     <div id="loading">Loading data...</div>
+    <button id="menu-toggle">☰</button>
     <div id="container">
         <div id="sidebar">
             <h1>1901 Irish Census</h1>
@@ -247,6 +285,18 @@
 
         // Load data on page load
         loadData();
+
+        // Mobile menu toggle
+        document.getElementById('menu-toggle').addEventListener('click', function() {
+            document.getElementById('sidebar').classList.toggle('open');
+        });
+
+        // Close sidebar when clicking on map (mobile only)
+        document.getElementById('map').addEventListener('click', function() {
+            if (window.innerWidth <= 768) {
+                document.getElementById('sidebar').classList.remove('open');
+            }
+        });
 
         function populateFilters() {
             const districts = [...new Set(allData.map(d => d['Electoral Division']))].sort();
