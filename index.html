@@ -208,7 +208,7 @@
             <div id="controls-section">
                 <h2>View Options</h2>
                 <button class="toggle-btn active" id="toggleMarkers">Hide Individual Markers</button>
-                <button class="toggle-btn" id="toggleHeatmap">Show Heatmap</button>
+               ###<button class="toggle-btn" id="toggleHeatmap">Show Heatmap</button>###
                 <button class="toggle-btn active" id="toggleClusters">Disable Clustering</button>
 
                 <h2>Filters</h2>
@@ -216,6 +216,11 @@
                     <label>Electoral District:</label>
                     <select id="districtFilter">
                         <option value="">All Districts</option>
+                    </select>
+
+                    <label>Occupation:</label>
+                    <select id="occupationFilter">
+                        <option value="">All Occupations</option>
                     </select>
 
                     <label>Sex:</label>
@@ -307,6 +312,17 @@
                     option.value = district;
                     option.textContent = district;
                     districtSelect.appendChild(option);
+                }
+            });
+
+            const occupations = [...new Set(allData.map(d => d.occupation))].sort();
+            const occupationSelect = document.getElementById('occupationFilter');
+            occupations.forEach(occupation => {
+                if (occupation) {
+                    const option = document.createElement('option');
+                    option.value = occupation;
+                    option.textContent = occupation;
+                    occupationSelect.appendChild(option);
                 }
             });
         }
@@ -468,12 +484,14 @@
         // Filter buttons
         document.getElementById('applyFilters').addEventListener('click', function() {
             const district = document.getElementById('districtFilter').value;
+            const occupation = document.getElementById('occupationFilter').value;
             const sex = document.getElementById('sexFilter').value;
             const minAge = parseInt(document.getElementById('minAge').value) || 0;
             const maxAge = parseInt(document.getElementById('maxAge').value) || 999;
 
             filteredData = allData.filter(person => {
                 if (district && person['Electoral Division'] !== district) return false;
+                if (occupation && person.occupation !== occupation) return false;
                 if (sex && person.sex !== sex) return false;
                 if (person.age != null && (person.age < minAge || person.age > maxAge)) return false;
                 return true;
@@ -485,6 +503,7 @@
 
         document.getElementById('resetFilters').addEventListener('click', function() {
             document.getElementById('districtFilter').value = '';
+            document.getElementById('occupationFilter').value = '';
             document.getElementById('sexFilter').value = '';
             document.getElementById('minAge').value = '';
             document.getElementById('maxAge').value = '';
