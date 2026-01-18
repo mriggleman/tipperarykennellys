@@ -283,7 +283,7 @@
         let currentFamily = 'kennelly';
 
         // Initialize map centered on Tipperary
-        map = L.map('map').setView([52.6733, -8.1614], 8.5);
+        map = L.map('map').setView([52.6733, -8.1614], 9);
         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
             attribution: '© OpenStreetMap contributors'
         }).addTo(map);
@@ -297,7 +297,7 @@
             document.getElementById('loading').style.display = 'block';
             
             const csvFile = currentFamily === 'kennelly' 
-                ? '1901_census_kennellys.csv' 
+                ? 'combined_census_data_only_kennelly.csv' 
                 : 'combined_Flanagans_tipperary.csv';
             
             Papa.parse(csvFile, {
@@ -316,7 +316,7 @@
                     updateStats();
                 },
                 error: function(error) {
-                    document.getElementById('file-status').textContent = ‘Coming soon ' + error.message;
+                    document.getElementById('file-status').textContent = 'Error loading data: ' + error.message;
                     document.getElementById('loading').style.display = 'none';
                 }
             });
