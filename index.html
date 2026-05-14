@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>1901 Irish Census - Tipperary Families Map</title>
+    <title>Irish Census (1901–1926) - Tipperary Families Map</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.css" />
     <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet.markercluster/1.5.3/leaflet.markercluster.js"></script>
@@ -214,6 +214,48 @@
             font-size: 13px;
             line-height: 1.8;
         }
+        .year-toggle {
+            display: flex;
+            gap: 6px;
+            margin-bottom: 15px;
+        }
+        .year-btn {
+            flex: 1;
+            padding: 8px 4px;
+            background: #34495e;
+            color: white;
+            border: 2px solid #27ae60;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 13px;
+            transition: all 0.3s;
+        }
+        .year-btn.active {
+            background: #27ae60;
+            font-weight: bold;
+        }
+        .year-btn:hover {
+            background: #219a52;
+        }
+        .year-btn.placeholder {
+            border-color: #7f8c8d;
+            color: #aaa;
+        }
+        .year-btn.placeholder.active {
+            background: #7f8c8d;
+        }
+        .year-btn.placeholder:hover {
+            background: #6c7a7d;
+        }
+        .placeholder-notice {
+            font-size: 11px;
+            color: #f39c12;
+            background: #34495e;
+            border-radius: 4px;
+            padding: 6px 8px;
+            margin-bottom: 12px;
+            display: none;
+        }
     </style>
 </head>
 <body>
@@ -221,9 +263,18 @@
     <button id="menu-toggle">☰</button>
     <div id="container">
         <div id="sidebar">
-            <h1>1901 Irish Census</h1>
-            <p style="font-size: 14px; margin-bottom: 20px;">County Tipperary</p>
-            
+            <h1>Irish Census</h1>
+            <p style="font-size: 14px; margin-bottom: 15px;">County Tipperary &middot; 1901&ndash;1926</p>
+
+            <div class="year-toggle">
+                <button class="year-btn active" id="year1901Btn">1901</button>
+                <button class="year-btn" id="year1911Btn">1911</button>
+                <button class="year-btn placeholder" id="year1926Btn">1926 &#9203;</button>
+            </div>
+            <div class="placeholder-notice" id="placeholderNotice">
+                &#9888; 1926 CSV data not yet added. Drop in your files and update the filenames in the script to enable this year.
+            </div>
+
             <div class="family-toggle">
                 <button class="family-btn active" id="kennellyBtn">Kennelly</button>
                 <button class="family-btn" id="flanaganBtn">Flanagan</button>
@@ -281,6 +332,28 @@
         let showingClusters = true;
         let showingHeatmap = false;
         let currentFamily = 'kennelly';
+        let currentYear = '1901';
+
+        // CSV file map — update the 1926 filenames once your data is ready
+        const CSV_FILES = {
+            kennelly: {
+                '1901': '1901_census_kennellys.csv',
+                '1911': '1911_census_kennellys.csv',          // update filename when ready
+                '1926': '1926_census_kennellys.csv'           // update filename when ready
+            },
+            flanagan: {
+                '1901': 'combined_flanagan_1901_data.csv',
+                '1911': 'combined_flanagan_1911_data.csv',    // update filename when ready
+                '1926': 'combined_flanagan_1926_data.csv'     // update filename when ready
+            }
+        };
+
+        // Which years have real data (set to true once a CSV is in place)
+        const YEAR_AVAILABLE = {
+            '1901': true,
+            '1911': false,   // set to true when 1911 CSVs are ready
+            '1926': false    // set to true when 1926 CSVs are ready
+        };
 
         // Initialize map centered on Tipperary
         map = L.map('map').setView([52.6733, -8.1614], 8.5);
@@ -294,12 +367,22 @@
 
         // Auto-load CSV file from repository
         function loadData() {
+            const notice = document.getElementById('placeholderNotice');
+            if (!YEAR_AVAILABLE[currentYear]) {
+                notice.style.display = 'block';
+                allData = [];
+                filteredData = [];
+                document.getElementById('file-status').textContent = 'No data loaded (placeholder year)';
+                populateFilters();
+                updateMap();
+                updateStats();
+                return;
+            }
+            notice.style.display = 'none';
             document.getElementById('loading').style.display = 'block';
-            
-            const csvFile = currentFamily === 'kennelly' 
-                ? '1901_census_kennellys.csv' 
-                : 'combined_flanagan_1901_data.csv';
-            
+
+            const csvFile = CSV_FILES[currentFamily][currentYear];
+
             Papa.parse(csvFile, {
                 download: true,
                 header: true,
@@ -309,7 +392,7 @@
                     allData = results.data.filter(row => row.LAT && row.LONG);
                     filteredData = [...allData];
                     const familyName = currentFamily === 'kennelly' ? 'Kennelly' : 'Flanagan';
-                    document.getElementById('file-status').textContent = `Loaded: ${allData.length} ${familyName} records`;
+                    document.getElementById('file-status').textContent = `${currentYear} · Loaded: ${allData.length} ${familyName} records`;
                     document.getElementById('loading').style.display = 'none';
                     populateFilters();
                     updateMap();
@@ -354,6 +437,18 @@
                 document.getElementById('kennellyBtn').classList.remove('active');
                 resetFiltersAndReload();
             }
+        });
+
+        // Year toggle buttons
+        ['1901', '1911', '1926'].forEach(year => {
+            document.getElementById(`year${year}Btn`).addEventListener('click', function() {
+                if (currentYear !== year) {
+                    currentYear = year;
+                    document.querySelectorAll('.year-btn').forEach(b => b.classList.remove('active'));
+                    this.classList.add('active');
+                    resetFiltersAndReload();
+                }
+            });
         });
 
         function resetFiltersAndReload() {
